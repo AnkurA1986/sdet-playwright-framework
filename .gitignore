@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Environment (secrets / local overrides)
+.env
+
+# Playwright & test execution artifacts (do not commit)
+test-results/
+playwright-report/
+blob-report/
+logs/
+allure-results/
+playwright/.cache/
+playwright/.auth/
+
+# IDE / editor local config
+.cursor/
