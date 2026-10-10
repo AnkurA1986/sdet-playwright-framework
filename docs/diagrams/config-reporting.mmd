@@ -1,0 +1,15 @@
+flowchart LR
+  EnvFile[".env optional"]
+  EnvTS["src/config/env.ts"]
+  PW["playwright.config.ts"]
+  TestRun["Test run"]
+  Artifacts["test-results\nvideo screenshot"]
+  HtmlReport["playwright-report"]
+  LogFile["logs/automation.log"]
+
+  EnvFile --> EnvTS
+  EnvTS --> PW
+  PW --> TestRun
+  TestRun --> Artifacts
+  TestRun --> HtmlReport
+  TestRun --> LogFile

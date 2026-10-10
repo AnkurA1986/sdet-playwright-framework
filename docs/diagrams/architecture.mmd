@@ -1,0 +1,32 @@
+flowchart TB
+  subgraph testsLayer [tests]
+    Specs["Spec files\nlogin / cart"]
+  end
+
+  subgraph frameworkLayer [src framework]
+    Fixtures["testFixtures\nloginPage shopPage"]
+    Pages["Page objects\nLogin Home Shop"]
+    Base["BasePage\nshared actions"]
+    Config["config env paths"]
+    Reporter["testLogReporter"]
+  end
+
+  subgraph runtimeLayer [Playwright runtime]
+    PWConfig["playwright.config.ts"]
+    Browser["Browser page"]
+  end
+
+  subgraph dataLayer [data and CI]
+    JSON["test-data JSON"]
+    GHA["GitHub Actions\nsmoke regression"]
+  end
+
+  Specs --> Fixtures
+  Fixtures --> Pages
+  Pages --> Base
+  Pages --> Browser
+  Config --> PWConfig
+  PWConfig --> Browser
+  JSON --> Specs
+  PWConfig --> Reporter
+  GHA --> PWConfig

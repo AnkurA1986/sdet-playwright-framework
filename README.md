@@ -1,71 +1,119 @@
-# MediShop Playwright framework (TypeScript)
+# SDET Playwright Framework (TypeScript)
 
-SDET-style layout: **tests describe intent; the framework knows how.**
+End-to-end UI tests for [MediShop](https://www.way2automation.com/MediShopWebApp/) using **Playwright**, organized like a small **SDET framework**: reusable code in `src/`, tests in `tests/`, data in JSON.
 
-## Structure
+**Goal:** Tests say *what* should happen. The framework handles *how* (pages, waits, config, reports).
 
-| Path | Role |
+### How to view the architecture diagrams
+
+| Where you read the README | What you see |
 | --- | --- |
-| `src/` | Reusable framework — pages, base classes, config, fixtures, reporters |
-| `tests/` | Specs and `expect()` only |
-| `test-data/` | JSON test data |
+| **GitHub** (browser) | PNG images below render automatically |
+| **Cursor / VS Code** | Open `README.md` → **Markdown: Open Preview** (`Ctrl+Shift+V`), or open the `.png` files in `docs/diagrams/` |
+| **Any file explorer** | Double-click `docs/diagrams/*.png` |
 
-## Prerequisites
+Source files to edit diagrams: `docs/diagrams/*.mmd` → regenerate PNGs: `npm run docs:diagrams`
 
-- Node.js (LTS)
-- `npm ci`
+---
 
-## Environment
+## High-level architecture
 
-Copy `.env.example` to `.env` (optional) or set variables in the shell:
+![Framework architecture](docs/diagrams/architecture.png)
 
-| Variable | Default |
+| Layer | What it is | Why it helps |
+| --- | --- | --- |
+| **tests/** | Scenarios + `expect()` only | Easy to read; failures point to business intent |
+| **fixtures** | Ready-made `loginPage`, `shopPage` | No copy-paste setup in every spec |
+| **pages/** | Locators + user actions | UI change = fix one file, not every test |
+| **base/** | Click, fill, wait helpers | Same timeout and style everywhere |
+| **config/** | URL, timeouts, routes | Run same tests on different envs |
+| **reporters** | Console + `logs/automation.log` | Audit trail like a TestNG listener |
+| **playwright.config** | Browser, video, screenshot, retries | One place for run behaviour |
+| **test-data/** | Users, products in JSON | Data is not buried in code |
+| **CI** | Smoke on PR, full/regression on schedule | Fast feedback + deeper checks |
+
+---
+
+## Data flow: one test run
+
+Example: *valid login* (`tests/login/login.spec.ts`).
+
+![Login test data flow](docs/diagrams/login-flow.png)
+
+**Cart flow** is the same pattern: spec → fixtures → `loginPage` (login) → `shopPage` (search, add, cart) → assertions in the spec.
+
+---
+
+## Data flow: config and reporting
+
+![Config and reporting flow](docs/diagrams/config-reporting.png)
+
+| Output | When you use it |
 | --- | --- |
-| `BASE_URL` | `https://www.way2automation.com/MediShopWebApp/` |
-| `HEADLESS` | `false` locally; `true` when `CI` is set |
-| `EXPLICIT_WAIT_MS` | `30000` |
-| `VIDEO` | `on` (record pass and fail). Use `retain-on-failure` to save disk space |
+| `npx playwright show-report` | Shareable HTML, videos attached |
+| `test-results/.../video.webm` | Raw recording per test |
+| `logs/automation.log` | Plain-text pass/fail log |
 
-## Run tests
+---
+
+## Folder map
+
+```text
+src/           Framework (no assertions on app behaviour)
+  base/        Shared page helpers
+  config/      env.ts, paths.ts
+  pages/       LoginPage, HomePage, ShopPage, NavComponent
+  fixtures/    Extended test with page fixtures
+  reporters/   testLogReporter.ts
+tests/         Specs only
+test-data/     login.json, medicine.json
+docs/diagrams/ Architecture PNG + Mermaid source (.mmd)
+```
+
+---
+
+## Design rules (3)
+
+1. **Assertions** → only in `tests/`.
+2. **Locators** → only in `src/pages/` (and `components/`).
+3. **URLs and timeouts** → `src/config/`, not hard-coded in specs.
+
+Page methods **return** the next page when it helps (e.g. `loginAs` → `HomePage`).
+
+---
+
+## Quick start
 
 ```bash
+npm ci
 npm test                 # all tests
 npm run test:smoke       # @smoke
 npm run test:regression  # @regression
+npx playwright show-report
 ```
 
-## Test videos
-
-With `VIDEO=on` (default), Playwright records **every** test and keeps the file whether the test passes or fails.
-
-1. Run tests: `npm test`
-2. **HTML report (easiest):** `npx playwright show-report` — open a test and use the **Video** attachment.
-3. **On disk:** each run writes `test-results/<test-folder>/video.webm` (paths vary by test title).
-
-To record only when a test fails (smaller `test-results` folder):
-
-```bash
-# PowerShell
-$env:VIDEO="retain-on-failure"; npm test
-```
-
-CI already uploads `test-results/` as a workflow artifact so videos are available from GitHub Actions when `VIDEO=on`.
-
-## Hooks and reporting (Playwright vs TestNG listeners)
-
-| Concern | Where |
+| Variable | Default |
 | --- | --- |
-| Browser / context per test | Built-in Playwright `page` fixture |
-| Framework page objects | `src/fixtures/testFixtures.ts` (`loginPage`, `shopPage`) |
-| Failure screenshots, video & trace | `playwright.config.ts` (`screenshot`, `video`, `trace`, `retries`) |
-| HTML report | `reporter: html` in config |
-| Pass/fail logging (like `TestListener`) | `src/reporters/testLogReporter.ts` → `logs/automation.log` |
-| Suite-level setup (embedded app) | `globalSetup` — not used (external MediShop URL) |
+| `BASE_URL` | MediShop URL |
+| `HEADLESS` | `false` local; `true` when `CI` is set |
+| `EXPLICIT_WAIT_MS` | `30000` |
+| `VIDEO` | `on` (use `retain-on-failure` to save disk) |
 
-Import tests from `src/fixtures/testFixtures.ts`, not `@playwright/test` directly, so every spec uses the same fixtures.
+Copy `.env.example` to `.env` if you want local overrides (set env vars in the shell or load `.env` yourself).
 
-## Rules
+---
 
-1. Assertions live in `tests/`, not in `src/pages/`.
-2. Locators live in page classes and components.
-3. URLs and timeouts come from `src/config/`, not hard-coded in tests.
+## Tags and CI
+
+| Tag | Purpose |
+| --- | --- |
+| `@smoke` | Fast checks (login happy paths) |
+| `@regression` | Broader checks (invalid login, cart) |
+
+GitHub Actions: **smoke** on pull requests; **full** on push to `main`; **regression** on schedule / manual dispatch.
+
+---
+
+## App under test
+
+[Way2Automation MediShop](https://www.way2automation.com/MediShopWebApp/) — login, shop search, add to cart (demo training app).

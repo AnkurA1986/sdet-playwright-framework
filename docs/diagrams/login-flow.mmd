@@ -1,0 +1,21 @@
+sequenceDiagram
+  participant Spec as Test spec
+  participant Fix as testFixtures
+  participant Login as LoginPage
+  participant Home as HomePage
+  participant CFG as env and paths
+  participant PW as Playwright
+  participant App as MediShop app
+
+  Spec->>Fix: import test expect
+  Fix->>Login: create loginPage from page
+  Spec->>Login: goTo
+  Login->>CFG: paths.login
+  Login->>PW: goto baseURL plus login
+  PW->>App: open login screen
+  Spec->>Login: loginAs user pass
+  Login->>App: fill and submit
+  Login->>Home: return HomePage
+  Spec->>Spec: expect URL and nav visible
+  PW->>PW: video screenshot on rules
+  PW->>Spec: pass or fail
