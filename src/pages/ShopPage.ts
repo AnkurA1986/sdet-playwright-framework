@@ -1,6 +1,7 @@
 import { Locator, Page } from '@playwright/test';
 import { BasePage } from '../base/BasePage';
 import { appConstants } from '../constants/appConstants';
+import { paths } from '../config/paths';
 import { NavComponent } from './components/NavComponent';
 
 export type SearchAndAddResult = {
@@ -29,9 +30,23 @@ export class ShopPage extends BasePage {
     this.prodType = page.locator('.product-cat');
   }
 
+  async goTo(): Promise<ShopPage> {
+    await this.page.goto(paths.products);
+    await this.waitForLoaded();
+    return this;
+  }
+
+  async waitForLoaded(): Promise<void> {
+    await this.waitForVisible(this.pageHeading);
+  }
+
+  shopHeading(): Locator {
+    return this.pageHeading;
+  }
+
   async openShop(): Promise<ShopPage> {
     await this.nav.openShop();
-    await this.waitForVisible(this.pageHeading);
+    await this.waitForLoaded();
     return this;
   }
 

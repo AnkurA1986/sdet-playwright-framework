@@ -2,4 +2,5 @@
 export const paths = {
   login: 'login.html',
   home: 'home.html',
+  products: 'products.html',
 };
