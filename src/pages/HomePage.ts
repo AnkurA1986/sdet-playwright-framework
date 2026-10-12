@@ -1,6 +1,7 @@
 import { Locator, Page } from '@playwright/test';
 import { BasePage } from '../base/BasePage';
 import { NavComponent } from './components/NavComponent';
+import { OrdersPage } from './OrdersPage';
 import { ShopPage } from './ShopPage';
 
 export class HomePage extends BasePage {
@@ -22,5 +23,12 @@ export class HomePage extends BasePage {
     const shopPage = new ShopPage(this.page);
     await shopPage.waitForLoaded();
     return shopPage;
+  }
+
+  async openOrders(): Promise<OrdersPage> {
+    await this.nav.openOrders();
+    const ordersPage = new OrdersPage(this.page);
+    await ordersPage.waitForLoaded();
+    return ordersPage;
   }
 }
