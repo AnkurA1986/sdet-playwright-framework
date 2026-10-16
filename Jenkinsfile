@@ -1,6 +1,18 @@
 pipeline {
     agent any
 
+    triggers {
+        cron('0 2 * * *')
+    }
+
+    parameters {
+        choice(
+            name: 'TEST_TYPE',
+            choices: ['smoke', 'sanity', 'regression'],
+            description: 'Select which test suite to run'
+        )
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -10,19 +22,39 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                bat 'npm install'
+                sh 'npm ci'
             }
         }
 
-        stage('Install Browsers') {
+        stage('Determine Test Type') {
             steps {
-                bat 'npx playwright install --with-deps'
+                script {
+                    def isCronBuild = currentBuild.getBuildCauses('hudson.triggers.TimerTrigger$TimerTriggerCause').size() > 0
+
+                    if (isCronBuild) {
+                        env.ACTUAL_TEST_TYPE = 'regression'
+                    } else {
+                        env.ACTUAL_TEST_TYPE = params.TEST_TYPE
+                    }
+
+                    echo "Running test type: ${env.ACTUAL_TEST_TYPE}"
+                }
             }
         }
 
         stage('Run Tests') {
             steps {
-                bat 'npx playwright test'
+                script {
+                    if (env.ACTUAL_TEST_TYPE == 'smoke') {
+                        sh 'npx playwright test --grep @smoke'
+                    } else if (env.ACTUAL_TEST_TYPE == 'sanity') {
+                        sh 'npx playwright test --grep @sanity'
+                    } else if (env.ACTUAL_TEST_TYPE == 'regression') {
+                        sh 'npx playwright test --grep @regression'
+                    } else {
+                        error "Unknown TEST_TYPE: ${env.ACTUAL_TEST_TYPE}"
+                    }
+                }
             }
         }
     }
@@ -30,9 +62,6 @@ pipeline {
     post {
         always {
             publishHTML(target: [
-                allowMissing: true,
-                alwaysLinkToLastBuild: true,
-                keepAll: true,
                 reportDir: 'playwright-report',
                 reportFiles: 'index.html',
                 reportName: 'Playwright Report'
